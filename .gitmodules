@@ -1,0 +1,4 @@
+[submodule "brain/cortex"]
+	path = brain/cortex
+	url = git@github.com:lscooperlee/cbrain.git
+	branch = master

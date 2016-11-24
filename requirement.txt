@@ -1,0 +1,6 @@
+pyserial
+pillow
+numpy
+opencv-python
+Django==1.9.12
+#picamera # for Raspberry PI
