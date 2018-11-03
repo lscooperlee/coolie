@@ -45,7 +45,7 @@ void serialDoWriteBuffer(){
     interrupts();
 
     while(tmpidx){
-        Serial.write(reinterpret_cast<const char *>(&tmp[--tmpidx]), sizeof(UartCmd));
+        Serial.write(reinterpret_cast<const unsigned char *>(&tmp[--tmpidx]), sizeof(UartCmd));
         Serial.flush();
     }
 }

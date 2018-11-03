@@ -1,7 +1,4 @@
 from multiprocessing import Process
-from emilib import emi_init, emi_msg_register, emi_msg, emi_msg_send
-
-from brain.core import cmd2msgnum, ValuedCondition
 from brain.cerebellum import uart
 
 
