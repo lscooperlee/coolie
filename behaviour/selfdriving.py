@@ -3,23 +3,29 @@ import time
 import socket
 import os
 import itertools
-import numpy as np
+import pickle
+import io
 from PIL import Image
 from multiprocessing import Process
+import numpy as np
 from emilib import emi_init, emi_msg_register, emi_msg, emi_loop
 
 from brain.core import cmd2msgnum, ValuedCondition
 from brain.cerebellum import uart
 from brain.cortex.cbrain import network
 
+
 motorCmdValue = ValuedCondition()
 imageValue = ValuedCondition()
+
 
 def motorCommand(msg):
     motorCmdValue.put([1 if msg.cmd==ord(x) else 0 for x in 'asdw'])
 
+
 def imageData(msg):
     imageValue.put(msg.data)
+
 
 def data_collect():
     DATA_PATH='/tmp/drive_data/'
@@ -43,37 +49,48 @@ def data_collect():
             with open(mname, 'wb') as fd:
                 fd.write(img)
 
-def train():
-    net = network.FFN((128*128, 1024, 4))
+            print("data %s saved"%mname)
+
+
+def prepare_data(img):
+    fd = io.BytesIO(img)
+    pil_im = Image.open(fd).convert('L').resize((32, 24))
+    return np.array(pil_im).reshape(-1)
+
+
+def train(data_path='/tmp/drive_data/', net_file='auto.net', iterloop=1000):
+    net = network.FFN((32*24, 1024, 4))
 
     def training_data_iter():
-        DATA_PATH='/tmp/drive_data/'
-        for name in os.listdir(DATA_PATH):
-            pil_im = Image.open(DATA_PATH+name).convert('L')
-            data = np.array(pil_im)
-            label = np.array([int(x) for x in name[6:10]])
-            yield data.reshape(-1), label
+        for name in os.listdir(data_path):
+            with open(data_path + name, 'rb') as fd:
+                data = prepare_data(fd.read())
+                label = np.array([int(x) for x in name[6:10]])
 
-    train_iter = itertools.islice(net.train(training_data_iter()), 5)
+                yield data.reshape(-1), label
+
+    train_iter = itertools.islice(net.train(training_data_iter()), iterloop)
 
     for n, s in enumerate(train_iter):
         print(n, s)
 
+    return net
 
-def test_forward(self):
-    net = FFN((1, 2, 1))
-    net.T["W01"] = np.array([[3, 1]])
-    net.T["W12"] = np.array([[2], [1]])
-    net.T["B1"] = np.array([1, 1])
-    net.T["B2"] = np.array([1])
-    net.F = Line()
 
-    dg = IntegerDataGenerator()
-    idata = dg.get(1, 3, 1)
-    odata = np.array([net.forward(v) for v in idata])
+def drive(img, net):
+    data = prepare_data(img)
+    return np.argmax(net.forward(data))
 
-    assert_array_equal(odata, np.array([[11], [18]]))
 
 if __name__ == '__main__':
-    data_collect()
-    #train()
+    #data_collect()
+
+    net = train(iterloop=6)
+
+    pickle.dump(net, open('auto.net', 'wb'))
+    pickle.load(open('auto.net', 'rb'))
+
+    with open('/tmp/drive_data/00001_1000.jpg', 'rb') as fd:
+        img = fd.read()
+        d = drive(img, net)
+        print(d)
