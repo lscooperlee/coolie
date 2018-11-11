@@ -6,7 +6,6 @@ from functools import partial
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.http import HttpResponse
-from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 
 import emilib
@@ -36,17 +35,14 @@ msgdict = {
         'u': emilib.emi_msg(msgnum = ord('u')),
         }
 
-#@login_required
 def index(request):
     return render(request, "index.html")
 
-#@login_required
 def get_image(request):
     encoded_string = base64.b64encode(img).decode() if img else ""
     return JsonResponse({'base64img':encoded_string})
 
 @csrf_exempt
-#@login_required
 def key_handler(request):
     if request.method == 'POST':
         data = json.loads(request.body.decode())
